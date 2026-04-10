@@ -1,0 +1,28 @@
+# Watchlist: 10 US large-cap + 5 Nasdaq tech + 5 TASE
+# TASE tickers use .TA suffix
+
+us_large_cap:
+  - AAPL
+  - MSFT
+  - GOOGL
+  - AMZN
+  - META
+  - NVDA
+  - BRK-B
+  - JPM
+  - JNJ
+  - XOM
+
+nasdaq_tech:
+  - TSLA
+  - AMD
+  - INTC
+  - QCOM
+  - ADBE
+
+tase:
+  - TEVA.TA
+  - CHKP.TA
+  - NICE.TA
+  - ICL.TA
+  - ELAL.TA

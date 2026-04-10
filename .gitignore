@@ -1,0 +1,13 @@
+.env
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+build/
+.cache/
+*.log
+.DS_Store
+.claude/
+replay_results.csv
+calibration.png

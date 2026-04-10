@@ -1,0 +1,44 @@
+model:
+  # Rolling window (trading days) for calibrating μ and σ
+  calibration_window_days: 252
+  # Forecast horizon in trading days (≈1 week)
+  forecast_horizon_days: 5
+  # Monte Carlo paths for perturbed forecast
+  mc_paths: 10000
+  # Perturbation coupling constants (not fit — config-driven)
+  epsilon_news: 0.3
+  epsilon_trends: 0.2
+
+signal:
+  # Minimum confidence to include a ticker in the digest
+  min_confidence_to_report: 0.5
+
+backtest:
+  # Historical window for price-only GBM backtest
+  start_date: "2020-01-01"
+  end_date:   "2025-12-31"
+  # Round-trip transaction cost in basis points
+  transaction_cost_bps: 10
+
+digest:
+  # Day of week for scheduled run (0=Monday … 6=Sunday)
+  send_day: 6
+  # UTC hour for scheduled run
+  send_hour_utc: 18
+  disclaimer: >
+    DISCLAIMER: This digest is produced by an automated research agent for
+    personal study purposes only. It is NOT investment advice. Past signals
+    do not guarantee future results. The author is not a registered financial
+    advisor. Always do your own research before making any financial decision.
+
+ingest:
+  # Cache TTL in seconds
+  price_ttl_seconds: 3600
+  news_ttl_seconds:  7200
+  trends_ttl_seconds: 86400
+  # Number of news articles to fetch per ticker
+  news_article_limit: 20
+  # Google Trends lookback window in days
+  trends_lookback_days: 90
+  # Cache directory (relative to project root)
+  cache_dir: ".cache"

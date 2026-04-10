@@ -1,0 +1,35 @@
+[project]
+name = "stochsignal"
+version = "0.1.0"
+description = "Personal research agent: weekly directional stock signal via perturbed GBM"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.12",
+    "pandas>=2.2",
+    "yfinance>=0.2",
+    "pytrends>=4.9",
+    "vaderSentiment>=3.3",
+    "newsapi-python>=0.2",
+    "jinja2>=3.1",
+    "click>=8.1",
+    "python-dotenv>=1.0",
+    "requests>=2.31",
+    "matplotlib>=3.8",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-cov"]
+
+[project.scripts]
+stochsignal = "stochsignal.scheduler:main"
+calibrate   = "scripts.calibrate:main"
+replay      = "scripts.replay_2026:main"
+
+[build-system]
+requires      = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["stochsignal", "scripts"]
