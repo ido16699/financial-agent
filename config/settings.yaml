@@ -8,6 +8,7 @@ model:
   # Perturbation coupling constants (not fit — config-driven)
   epsilon_news: 0.3
   epsilon_trends: 0.2
+  epsilon_sector: 0.25
 
 signal:
   # Minimum confidence to include a ticker in the digest

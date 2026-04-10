@@ -10,8 +10,10 @@ HIGH-CONFIDENCE SIGNALS (confidence >= {{ min_confidence }})
   Direction  : {{ s.direction }}
   P(up)      : {{ "%.1f"|format(s.prob_up * 100) }}%
   Confidence : {{ "%.2f"|format(s.confidence) }}
+  Range      : {{ "%+.1f"|format(s.range_floor_pct) }}% to {{ "%+.1f"|format(s.range_ceil_pct) }}%  (median {{ "%+.1f"|format(s.range_median_pct) }}%)
   Sentiment  : {{ "%.3f"|format(s.sentiment) }}
   Trends z   : {{ "%.2f"|format(s.trends_zscore) }}
+  Sector z   : {{ "%.2f"|format(s.sector_zscore) }}
   mu* (ann.) : {{ "%.2f"|format(s.mu_perturbed * 100) }}%
 
 {% endfor %}

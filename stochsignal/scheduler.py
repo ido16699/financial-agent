@@ -19,6 +19,7 @@ from stochsignal.config import settings, watchlist
 from stochsignal.ingest.prices import get_log_returns
 from stochsignal.ingest.news import fetch_news_sentiment
 from stochsignal.ingest.trends import fetch_trends_zscore
+from stochsignal.ingest.sector import fetch_sector_momentum
 from stochsignal.model.gbm import calibrate
 from stochsignal.model.perturbation import compute as compute_forecast, PerturbedForecast
 from stochsignal.digest.renderer import render
@@ -42,8 +43,8 @@ def _forecast_ticker(
     as_of:
         Point-in-time date for price data.
     skip_external:
-        If True, use sentiment=0.0 and trends=0.0 (backtest / replay mode
-        where external data is not available point-in-time).
+        If True, use sentiment=0.0, trends=0.0, sector=0.0
+        (backtest / replay where external data is not point-in-time).
     """
     try:
         log_returns = get_log_returns(ticker, as_of=as_of)
@@ -52,11 +53,18 @@ def _forecast_ticker(
         if skip_external:
             sentiment = 0.0
             trends_z = 0.0
+            sector_z = 0.0
         else:
             sentiment = fetch_news_sentiment(ticker)
             trends_z = fetch_trends_zscore(ticker)
+            sector_z = fetch_sector_momentum(ticker, as_of=as_of)
 
-        return compute_forecast(params, sentiment=sentiment, trends_zscore=trends_z)
+        return compute_forecast(
+            params,
+            sentiment=sentiment,
+            trends_zscore=trends_z,
+            sector_zscore=sector_z,
+        )
 
     except Exception as exc:
         log.error("Failed to forecast %s: %s", ticker, exc)
@@ -66,7 +74,7 @@ def _forecast_ticker(
 @click.command()
 @click.option("--dry-run", is_flag=True, help="Print digest to console instead of sending email.")
 @click.option("--as-of", "as_of_str", default=None, help="Run as if today is this date (YYYY-MM-DD).")
-@click.option("--skip-external", is_flag=True, help="Skip news/trends (use zeroed perturbation).")
+@click.option("--skip-external", is_flag=True, help="Skip news/trends/sector (use zeroed perturbation).")
 @click.option("--tickers", default=None, help="Comma-separated list of tickers to run (default: full watchlist).")
 def main(dry_run: bool, as_of_str: str | None, skip_external: bool, tickers: str | None) -> None:
     """StochSignal: weekly directional stock research digest."""

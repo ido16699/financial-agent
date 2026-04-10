@@ -34,6 +34,7 @@ class Settings:
         self.mc_paths: int = m["mc_paths"]
         self.epsilon_news: float = m["epsilon_news"]
         self.epsilon_trends: float = m["epsilon_trends"]
+        self.epsilon_sector: float = m["epsilon_sector"]
 
         s = raw["signal"]
         self.min_confidence_to_report: float = s["min_confidence_to_report"]
