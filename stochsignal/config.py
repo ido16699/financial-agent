@@ -35,6 +35,7 @@ class Settings:
         self.epsilon_news: float = m["epsilon_news"]
         self.epsilon_trends: float = m["epsilon_trends"]
         self.epsilon_sector: float = m["epsilon_sector"]
+        self.epsilon_wave: float = m["epsilon_wave"]
 
         s = raw["signal"]
         self.min_confidence_to_report: float = s["min_confidence_to_report"]

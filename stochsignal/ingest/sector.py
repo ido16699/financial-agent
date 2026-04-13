@@ -29,7 +29,7 @@ log = get_logger(__name__)
 SECTOR_INDEX = {
     "US Large-Cap": "SPY",
     "Nasdaq Tech": "QQQ",
-    "TASE": "^TA35.TA",
+    "TASE": "TA35.TA",
 }
 
 # Lookback for sector momentum (trading days)

@@ -9,6 +9,7 @@ model:
   epsilon_news: 0.3
   epsilon_trends: 0.2
   epsilon_sector: 0.25
+  epsilon_wave: 0.2
 
 signal:
   # Minimum confidence to include a ticker in the digest
