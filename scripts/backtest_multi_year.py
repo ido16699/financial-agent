@@ -37,7 +37,7 @@ def main(start_year: int, end_year: int, capital: float):
         log.info("BACKTESTING %d", year)
         log.info("=" * 40)
 
-        snapshots = run_replay(
+        snapshots, _ = run_replay(
             start, end, tickers, capital,
             stop_loss_pct=weights.learned_stop_loss_pct,
             kelly_frac=weights.learned_kelly_fraction,

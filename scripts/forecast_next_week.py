@@ -116,6 +116,7 @@ def main():
         ) / 6.0
         composite = linear + weights.w_interference * interference
         prob_up = 1.0 / (1.0 + np.exp(-composite))
+        prob_down = 1.0 - prob_up
 
         # Confidence
         signals = [market_mom, wave_signal, sector_z, gbm_signal * 5]
@@ -130,6 +131,7 @@ def main():
         forecasts.append({
             "ticker": ticker,
             "prob_up": prob_up,
+            "prob_down": prob_down,
             "confidence": confidence,
             "avg_weekly_win": weights.avg_weekly_win,
             "avg_weekly_loss": weights.avg_weekly_loss,
@@ -161,8 +163,8 @@ def main():
     print(f"  Learned params: stop_loss={weights.learned_stop_loss_pct*100:.1f}%  kelly={weights.learned_kelly_fraction:.1f}  max_alloc={weights.learned_max_allocation*100:.0f}%")
     print(f"  Market momentum (SPY 20d z-score): {market_mom:+.2f}")
     print(f"{'='*80}")
-    print(f"  {'Ticker':<10} {'Dir':>5} {'P(up)':>7} {'Conf':>6} {'Alloc%':>7} {'Price':>10} {'Regime':>12} {'Vol':>6} {'Signals'}")
-    print(f"  {'-'*10} {'-'*5} {'-'*7} {'-'*6} {'-'*7} {'-'*10} {'-'*12} {'-'*6} {'-'*30}")
+    print(f"  {'Ticker':<10} {'Dir':>5} {'P(up)':>7} {'P(dn)':>7} {'Conf':>6} {'Alloc%':>7} {'Price':>10} {'Regime':>12} {'Vol':>6} {'Signals'}")
+    print(f"  {'-'*10} {'-'*5} {'-'*7} {'-'*7} {'-'*6} {'-'*7} {'-'*10} {'-'*12} {'-'*6} {'-'*30}")
 
     # Sort by allocation
     sorted_fc = sorted(forecasts, key=lambda f: pos_map[f["ticker"]].position_pct if f["ticker"] in pos_map else 0, reverse=True)
@@ -175,7 +177,7 @@ def main():
             continue
         active_count += 1
         sig_str = f"mkt={fc['market_mom']:+.1f} wave={fc['wave_signal']:+.2f} sec={fc['sector_z']:+.2f} gbm={fc['gbm_prob']:.2f}"
-        print(f"  {fc['ticker']:<10} {fc['direction']:>5} {fc['prob_up']:>7.1%} {fc['confidence']:>6.2f} {alloc_pct:>6.1f}% {fc['current_price']:>10.2f} {fc['regime']:>12} {fc['sigma']:>5.1f}% {sig_str}")
+        print(f"  {fc['ticker']:<10} {fc['direction']:>5} {fc['prob_up']:>7.1%} {fc['prob_down']:>7.1%} {fc['confidence']:>6.2f} {alloc_pct:>6.1f}% {fc['current_price']:>10.2f} {fc['regime']:>12} {fc['sigma']:>5.1f}% {sig_str}")
 
     print(f"  {'-'*80}")
 

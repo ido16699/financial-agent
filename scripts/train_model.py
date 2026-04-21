@@ -1,32 +1,75 @@
-"""Train the model on historical data (2020-2025).
+"""Train the model on historical data.
 
-Usage:
+Usage (local):
     python -m scripts.train_model
-    python -m scripts.train_model --start 2020-01-01 --end 2025-12-31
+
+Usage (Colab / 100-stock adaptive universe, 2010-2019):
+    python -m scripts.train_model \\
+      --start 2010-01-01 --end 2019-12-31 \\
+      --snapshot data/prices_snapshot.parquet \\
+      --universe-dir config/universe_snapshots
 """
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import click
+import pandas as pd
 
 from stochsignal.model.train import train
-from stochsignal.config import watchlist
 
 
 @click.command()
-@click.option("--start", default="2020-01-01", show_default=True)
-@click.option("--end", default="2025-12-31", show_default=True)
-@click.option("--tickers", default=None, help="Comma-separated tickers. Default: full watchlist.")
-def main(start: str, end: str, tickers: str | None) -> None:
+@click.option("--start", default="2010-01-01", show_default=True)
+@click.option("--end", default="2019-12-31", show_default=True,
+              help="Must be <= 2019-12-31 for strict training (no look-ahead).")
+@click.option("--tickers", default=None, help="Comma-separated tickers override.")
+@click.option("--snapshot", default=None,
+              help="Path to prices_snapshot.parquet (skips yfinance).")
+@click.option("--universe-dir", default=None,
+              help="Path to config/universe_snapshots/ for adaptive universe.")
+def main(start: str, end: str, tickers: str | None,
+         snapshot: str | None, universe_dir: str | None) -> None:
     """Train signal weights from historical backtest data."""
     ticker_list = [t.strip() for t in tickers.split(",")] if tickers else None
+
+    # Load price snapshot if provided
+    prices_override = None
+    spy_override = None
+    if snapshot:
+        from stochsignal.ingest.snapshot_loader import load_all_prices
+        prices_override = load_all_prices(snapshot)
+        spy_override = prices_override.get("SPY")
+        print(f"Loaded {len(prices_override)} tickers from snapshot {snapshot}")
+
+    # Load universe snapshots if provided
+    universe_snapshots = None
+    if universe_dir:
+        manifest = Path(universe_dir) / "manifest.json"
+        if manifest.exists():
+            universe_snapshots = json.loads(manifest.read_text())
+            # Expand tickers to union of all snapshots
+            ticker_list = sorted({t for ts in universe_snapshots.values() for t in ts})
+            print(f"Adaptive universe: {len(universe_snapshots)} snapshot dates, "
+                  f"{len(ticker_list)} unique tickers over training period")
 
     print(f"\n{'='*60}")
     print(f"  StochSignal — Training Phase")
     print(f"  Data: {start} → {end}")
+    if prices_override is not None:
+        print(f"  Source: snapshot parquet ({len(prices_override)} tickers)")
+    if universe_snapshots:
+        print(f"  Universe: adaptive ({len(universe_snapshots)} quarterly snapshots)")
     print(f"{'='*60}\n")
 
-    weights = train(tickers=ticker_list, start=start, end=end, save=True)
+    weights = train(
+        tickers=ticker_list, start=start, end=end, save=True,
+        prices_override=prices_override,
+        universe_snapshots=universe_snapshots,
+        spy_override=spy_override,
+    )
 
     print(f"\n{'='*60}")
     print(f"  Training Complete")
@@ -55,6 +98,7 @@ def main(start: str, end: str, tickers: str | None) -> None:
     print(f"    wave       : {weights.w_wave:.2f}")
     print(f"    sector     : {weights.w_sector:.2f}")
     print(f"    gbm        : {weights.w_gbm:.2f}")
+    print(f"    interfere  : {weights.w_interference:.2f}")
     print(f"  Validation return: {weights.validation_return_pct:+.2f}%")
     print(f"  ---")
     print(f"  Weights saved to config/trained_weights.json")

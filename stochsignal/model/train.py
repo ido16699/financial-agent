@@ -95,24 +95,41 @@ def train(
     start: str | None = None,
     end: str | None = None,
     save: bool = True,
+    prices_override: dict | None = None,
+    universe_snapshots: dict | None = None,
+    spy_override=None,
 ) -> TrainedWeights:
     """Train signal weights from historical walk-forward backtest.
 
     Parameters
     ----------
     tickers : list of tickers. Default: full watchlist.
+              If universe_snapshots is provided, this is the union set.
     start / end : training date range. Default: settings backtest start/end.
     save : if True, save weights to config/trained_weights.json.
-
-    Returns
-    -------
-    TrainedWeights with optimized betas.
+    prices_override : optional {ticker -> DataFrame} (from parquet snapshot).
+                      Skips yfinance if provided.
+    universe_snapshots : optional {date -> [tickers]} for adaptive universe.
+                         At each training week, only samples from the most-recent
+                         active universe are collected.
+    spy_override : optional SPY DataFrame for market momentum.
     """
     tickers = tickers or watchlist.all_tickers
     start = start or settings.backtest_start
     end = end or settings.backtest_end
 
-    log.info("Training on %d tickers, %s → %s", len(tickers), start, end)
+    # Build active-universe helper
+    snap_dates = sorted(universe_snapshots.keys()) if universe_snapshots else None
+    def _active_universe(monday: pd.Timestamp) -> set[str]:
+        if not universe_snapshots:
+            return set(tickers)
+        eligible = [d for d in snap_dates if pd.Timestamp(d) <= monday]
+        if not eligible:
+            return set()
+        return set(universe_snapshots[eligible[-1]])
+
+    log.info("Training on %d tickers, %s → %s (adaptive_universe=%s)",
+             len(tickers), start, end, bool(universe_snapshots))
 
     mondays = list(pd.date_range(start=start, end=end, freq="W-MON"))
     if len(mondays) < 10:
@@ -126,27 +143,40 @@ def train(
     weekly_returns_wrong = []
 
     # Pre-fetch SPY for market momentum
-    try:
-        full_end_ts = (pd.Timestamp(end) + pd.Timedelta(days=14)).strftime("%Y-%m-%d")
-        spy_prices = get_price_history("SPY", as_of=full_end_ts, window_days=2000)
-        spy_prices = spy_prices.sort_index()
-    except Exception:
-        spy_prices = None
-        log.warning("Could not fetch SPY for market momentum")
+    if spy_override is not None:
+        spy_prices = spy_override.sort_index()
+    else:
+        try:
+            full_end_ts = (pd.Timestamp(end) + pd.Timedelta(days=14)).strftime("%Y-%m-%d")
+            spy_prices = get_price_history("SPY", as_of=full_end_ts, window_days=2000)
+            spy_prices = spy_prices.sort_index()
+        except Exception:
+            spy_prices = None
+            log.warning("Could not fetch SPY for market momentum")
 
     for ticker in tickers:
         log.info("Training: collecting samples for %s ...", ticker)
-        try:
-            full_end = (pd.Timestamp(end) + pd.Timedelta(days=14)).strftime("%Y-%m-%d")
-            all_prices = get_price_history(ticker, as_of=full_end, window_days=2000)
-            all_prices = all_prices.sort_index()
-        except Exception as exc:
-            log.error("Could not fetch %s: %s", ticker, exc)
-            continue
+        if prices_override is not None:
+            if ticker not in prices_override:
+                log.warning("No snapshot data for %s, skipping", ticker)
+                continue
+            all_prices = prices_override[ticker].sort_index()
+        else:
+            try:
+                full_end = (pd.Timestamp(end) + pd.Timedelta(days=14)).strftime("%Y-%m-%d")
+                all_prices = get_price_history(ticker, as_of=full_end, window_days=2000)
+                all_prices = all_prices.sort_index()
+            except Exception as exc:
+                log.error("Could not fetch %s: %s", ticker, exc)
+                continue
 
         for i in range(len(mondays) - 1):
             monday = mondays[i]
             next_monday = mondays[i + 1]
+
+            # Adaptive universe: only collect samples if ticker is in active universe
+            if universe_snapshots and ticker not in _active_universe(monday):
+                continue
 
             # Point-in-time slice
             pit = all_prices[all_prices.index <= monday]
@@ -277,21 +307,27 @@ def train(
 
     log.info("Phase 2: Optimizing risk params on validation period %s → %s", val_start_str, val_end_str)
 
-    # Collect all prices for validation (reuse already-fetched data)
+    # Collect all prices for validation (reuse already-fetched data or snapshot)
     val_prices: dict[str, pd.DataFrame] = {}
     val_full_end = (pd.Timestamp(val_end_str) + pd.Timedelta(days=14)).strftime("%Y-%m-%d")
-    for ticker in tickers:
+    if prices_override is not None:
+        val_prices = {t: df.sort_index() for t, df in prices_override.items() if t in tickers}
+    else:
+        for ticker in tickers:
+            try:
+                df = get_price_history(ticker, as_of=val_full_end, window_days=2000)
+                val_prices[ticker] = df.sort_index()
+            except Exception:
+                pass
+
+    if spy_override is not None:
+        val_spy = spy_override.sort_index()
+    else:
+        val_spy = None
         try:
-            df = get_price_history(ticker, as_of=val_full_end, window_days=2000)
-            val_prices[ticker] = df.sort_index()
+            val_spy = get_price_history("SPY", as_of=val_full_end, window_days=2000).sort_index()
         except Exception:
             pass
-
-    val_spy = None
-    try:
-        val_spy = get_price_history("SPY", as_of=val_full_end, window_days=2000).sort_index()
-    except Exception:
-        pass
 
     risk_params = _optimize_risk_params(
         val_prices, val_spy, val_start_str, val_end_str, tickers, avg_win, avg_loss,

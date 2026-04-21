@@ -11,3 +11,13 @@ build/
 .claude/
 replay_results.csv
 calibration.png
+
+# Large data files generated in Colab — regenerated, not committed
+data/prices_snapshot.parquet
+data/*.parquet
+backtest_*_trades.csv
+backtest_*_weekly.csv
+backtest_*.csv
+replay_portfolio.csv
+# Stray clone (not part of the repo)
+financial-agent/

@@ -56,7 +56,7 @@ def run_ticker_backtest(
 
     # Fetch full history once (up to end + buffer for outcome)
     full_end = (pd.Timestamp(end) + pd.Timedelta(days=14)).strftime("%Y-%m-%d")
-    all_prices = get_price_history(ticker, as_of=full_end, window_days=99999)
+    all_prices = get_price_history(ticker, as_of=full_end, window_days=2000)
     all_prices = all_prices.sort_index()
 
     prob_ups, outcomes, log_returns_list, dates = [], [], [], []
