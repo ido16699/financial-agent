@@ -101,8 +101,11 @@ def _fft_analysis(
     forecast = float(dominant_magnitude * np.cos(
         2 * np.pi * freqs[dominant_idx] * (n + horizon_days) + phase
     ))
-    # Normalise by std of returns
-    std_r = np.std(log_returns)
+    # Normalise by RECENT volatility (trailing window) so the signal is locally
+    # stationary. Using full-history std mixes disparate volatility regimes
+    # (e.g. 2000 vs 2008 vs 2019) and makes the feature non-stationary.
+    recent = log_returns[-63:] if len(log_returns) > 63 else log_returns
+    std_r = np.std(recent)
     forecast_signal = forecast / std_r if std_r > 1e-9 else 0.0
 
     return float(dominant_period), float(np.clip(forecast_signal, -3, 3)), float(spectral_strength)

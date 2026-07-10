@@ -15,6 +15,8 @@ calibration.png
 # Large data files generated in Colab — regenerated, not committed
 data/prices_snapshot.parquet
 data/*.parquet
+# Transformer sequence tensors (hundreds of MB — regenerated from the snapshot)
+data/sequences/
 backtest_*_trades.csv
 backtest_*_weekly.csv
 backtest_*.csv
